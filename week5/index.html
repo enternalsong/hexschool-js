@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <!--VUe-->
+    <script src="https://unpkg.com/vue"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3/dist/vue-loading.css" rel="stylesheet">
+    <title>Vue jS 第五週作業</title>
+  </head>
+  <body>
+    <h1>Hello, world!</h1>
+    <div id="app">
+        {{message}}
+        <loading :active.sync="isLoading"></loading>
+        <div class="d-flex justify-content-between mb-4">
+          <h2 class="text-lyellow">產品列表</h2>
+      </div>
+      <div class="tab-content" id="nav-tabContent">
+          <div class="tab-pane fade show active" id="content-all" role="tabpanel" aria-labelledby="list-all">
+              <div class="container">
+                  <div class="row">
+                      <div class="col-md-4 mb-4 pl-0" v-for="item in products" :key="item.id">
+                          <div class="card border-0 shadow-sm h-100">
+                              <div style="height: 300px; background-size: cover; background-position: center"
+                                  :style="{backgroundImage: `url(${item.imageUrl[0]})`}">
+                              </div>
+                              <div class="card-body bg-shadowdark">
+                                  <h5 class="card-title d-flex align-items-center">
+                                  <a href="#" class="product-text text-lyellow mr-auto" >{{ item.title }}</a>
+                                  <span class="badge badge-secondary ml-2">{{ item.category }}</span>
+                                  </h5>
+                                  <div class="d-flex flex-column justify-content-between align-items-baseline text-black">
+                                      <div class="h6" v-if="item.price == item.origin_price">售價:{{ item.price }} 元</div>
+                                      <del class="h6" v-if="item.price!= item.origin_price">原價:{{ item.origin_price }} 元</del>
+                                      <div class="h5" v-if="item.price !=item.origin_price">夏日特賣:優惠 {{ item.price }} 元</div>
+                                  </div>
+                              </div>
+                              <div class="card-footer d-flex text-lyellow bg-shadowdark">
+                                  <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#productModal" @click="getproduct(item.id)">
+                                    <i class="fas  fa-spin"></i>
+                                    查看商品資訊
+                                  </button>
+                                  <button type="button" class="btn btn-outline-danger btn-sm ml-auto" @click="addcart(item.id,1)">
+                                  <i class="fas  fa-spin"></i>
+                                  加到購物車
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                      
+                  </div>
+                  <!--pagination component-->
+                  <div>
+                    <nav aria-label="Page navigation example">
+                      <ul class="pagination">
+                        <li class="page-item" :class="{'disabled': pages.current_page - 1 <= 0}"><a class="page-link" href="#" @click.prevent="getdata(pages.current_page-1)">Previous</a></li>
+                        <li class="page-item" v-for="page in pages.total_pages" :key="page" :class="{'active':pages.current_page ===page}"><a class="page-link" href="#" v-show="page<5" @click.prevent="updatePage(page)" >{{page}}</a></li>
+                        <li class="page-item" :class="{'disabled': pages.current_page+1 > pages.total_pages}"><a class="page-link" href="#" @click.prevent="getdata( pages.current_page+1 )">Next</a></li>
+                      </ul>
+                    </nav>
+                  </div>
+              </div>
+          </div>
+      </div>
+      <!--Product detail modal-->
+      <div class="modal" id="productModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{tempProduct.title}}</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <h3>{{tempProduct.description}}</h3>
+              <p></p>
+              <div class="text-left" v-if="tempProduct.price== tempProduct.origin_price">原價: {{tempProduct.price}}元</div>
+              <div class="text-left"><del class="h6" v-if="tempProduct.price!= tempProduct.origin_price">原價:{{ tempProduct.origin_price }} 元</del></div>
+              <div class="h4 text-left text-onsale" v-if="tempProduct.price !=tempProduct.origin_price">夏日特賣:優惠 {{ tempProduct.price }} 元</div>
+              <h3 class="text-right">總計</h3>
+              <h4 class="text-right text-price">{{one_product_sum}}</h4>
+              <form>
+                <div class="form-group">
+                  <label for="num" class="text-left">數量</label>
+                  <select name="num" class="form-control mb-3" id="buy_numberInput" v-model=num>
+                    <option value=1>訂購1{{tempProduct.unit}}</option>
+                    <option value=2>訂購2{{tempProduct.unit}}</option>
+                    <option value=3>訂購3{{tempProduct.unit}}</option>
+                    <option value=4>訂購4{{tempProduct.unit}}</option>
+                    <option value=5>訂購5{{tempProduct.unit}}</option>
+                    <option value=6>訂購6{{tempProduct.unit}}</option>
+                  </select>
+                  <button class="btn btn-primary w-100" @click.prevent="addcart(tempProduct.id,num)">加入購物車</button>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!--購物車-->
+      <div class="my-5 row justify-content-center">
+        <div class="col-md-6">
+          <div class="text-right mb-3">
+            <button type="button" class="btn btn-outline-danger btn-sm" @click="removeAllCartItem()">
+              <i class="far fa-trash-alt"> 刪除所有品項</i>
+            </button>
+          </div>
+          <table class="table">
+            <thead>
+              <th>刪除</th>
+              <th>品名</th>
+              <th width="150px">
+                數量
+              </th>
+              <th>單位</th>
+              <th>單價</th>
+            </thead>
+            <tbody v-if="cart.length">
+              <tr v-for="item in cart" :key="item.id">
+                <td class="align-middle">
+                  <button type="button" class="btn btn-outline-danger btn-sm" @click="removeCartItem(item.product.id)">
+                    <i class="far fa-trash-alt"></i>
+                  </button>
+                </td>
+                <td class="align-middle">
+                  {{ item.product.title }}
+                </td>
+                <td class="align-middle">
+                  <div class="input-group">
+                    <div class="input-group-prepend">
+                      <button class="btn btn-outline-primary"
+                        type="button"
+                        @click="quantityUpdata(item.product.id, item.quantity + 1)">
+                        +
+                      </button>
+                    </div>
+                    <input id="inlineFormInputGroupUsername" type="text" class="form-control text-center"
+                      :value="item.quantity" @keyup.enter="quantityUpdata(item.product.id, $event.target.value)">
+                    <div class="input-group-append">
+                      <button class="btn btn-outline-primary"
+                        type="button"
+                        @click="quantityUpdata(item.product.id, item.quantity - 1)"
+                        :disabled="item.quantity === 1">
+                        -
+                      </button>
+                    </div>
+                  </div>
+                </td>
+                <td class="align-middle">
+                  {{ item.product.unit }}
+                </td>
+                <td class="align-middle text-right">
+                  {{ item.product.price }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-right">
+                  總計
+                </td>
+                <td class="text-right">
+                  {{cartTotal}}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <!--表單-->      
+      <div class="my-5 row justify-content-center">
+        <validation-observer v-slot="{ invalid }" class="col-md-6">
+          <form @submit.prevent="createOrder">
+            <div class="form-group">
+              <validation-provider v-slot="{ errors, classes }" rules="required">
+                <label for="username">收件人姓名</label>
+                <input id="username" v-model="form.name" type="text" class="form-control" :class="classes">
+                <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
+              </validation-provider>
+            </div>
+            <div class="form-group">
+              <validation-provider v-slot="{ errors, classes }" rules="required">
+                <label for="email">Email</label>
+                <input id="email" v-model="form.email" type="email" class="form-control" :class="classes">
+                <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
+              </validation-provider>
+            </div>
+            <div class="form-group">
+              <validation-provider  v-slot="{ errors, classes }" rules="required|min:8">
+                <label for="tel">電話</label>
+                <input id="tel" v-model="form.tel" type="tel" class="form-control" :class="classes">
+                <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
+              </validation-provider>
+            </div>
+            <div class="form-group">
+              <validation-provider v-slot="{ errors, classes }" rules="required">
+                <label for="address">地址</label>
+                <input id="address" v-model="form.address" type="text" class="form-control" :class="classes">
+                <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
+              </validation-provider>
+            </div>
+            <div class="form-group">
+              <label for="message">購買方式</label>
+              <select v-model="form.payment" class="form-control" required>
+                <option value="" disabled>
+                  請選擇付款方式
+                </option>
+                <option value="WebATM">
+                  WebATM
+                </option>
+                <option value="ATM">
+                  ATM
+                </option>
+                <option value="CVS">
+                  CVS
+                </option>
+                <option value="Barcode">
+                  Barcode
+                </option>
+                <option value="Credit">
+                  Credit
+                </option>
+                <option value="ApplePay">
+                  ApplePay
+                </option>
+                <option value="GooglePay">
+                  GooglePay
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="message">留言</label>
+              <textarea id="message" v-model="form.message" class="form-control" cols="30" rows="3">
+            </textarea>
+            </div>
+            <div class="text-right">
+              <button type="submit" class="btn btn-primary" :disabled="invalid">
+                送出表單
+              </button>
+            </div>
+          </form>
+        </validation-observer>
+      </div>
+    </div>
+    <script type="module">
+      const uuid= 'f9a55630-854f-4469-98a6-628744960e73'; 
+      const apiPath = 'https://course-ec-api.hexschool.io/api/';
+      import Pagination from './src/js/pagination.js';
+      import zh from './src/js/zh_TW.js';
+
+      // 自定義設定檔案，錯誤的 className
+      VeeValidate.configure({
+        classes: {
+          valid: 'is-valid',
+          invalid: 'is-invalid',
+        },
+      });
+
+      // 載入自訂規則包
+      VeeValidate.localize('tw', zh);
+
+      // 將 VeeValidate input 驗證工具載入 作為全域註冊
+      Vue.component('ValidationProvider', VeeValidate.ValidationProvider);
+      // 將 VeeValidate 完整表單 驗證工具載入 作為全域註冊
+      Vue.component('ValidationObserver', VeeValidate.ValidationObserver);
+      // 掛載 Vue-Loading 套件
+      Vue.use(VueLoading);
+      // 全域註冊 VueLoading 並標籤設定為 loading
+      Vue.component('loading', VueLoading);
+
+
+      var app = new Vue({
+            el:"#app",
+            data:{
+                message: 'hello Vue!',
+                products:[],
+                pages:{},
+                num : 1,
+                isLoading: true,
+                tempProduct: { price: 0,},
+                cart:[{product:{price:0},quality:0}],
+                quantity: 1,
+                form:{
+                  payment:'',
+                  name:'',
+                  email:'',
+                  tel:'',
+                }
+                
+            },
+            methods:{
+              getdata(page = 1){
+                const vm = this;
+                const api = `${apiPath}${uuid}/ec/products?page=${page}`;
+                vm.isLoading = true;
+                console.log(page);
+                axios.get(api).then(function(response){
+                  console.log( response);
+                  vm.isLoading = false;
+                  vm.products = response.data.data;
+                  console.log(vm.products);
+                  vm.pages = response.data.meta.pagination;
+                  console.log('Pagination',vm.pages);
+                })
+              },
+              getproduct(id){
+                const vm = this;
+                const api = `${apiPath}${uuid}/ec/product/${id}`;
+                console.log(id);
+                vm.isLoading = true;
+                axios.get(api).then(function(response){
+                  console.log(response);
+                  vm.tempProduct = response.data.data;
+                  vm.num=1;
+                  vm.isLoading = false;
+                  $('#productModal').show();
+
+                })
+              },
+              updatePage(page){
+                console.log(page);
+                this.getdata(page);
+              },
+              getcart(){
+                const vm = this;
+                const api = `${apiPath}${uuid}/ec/shopping`;
+                vm.isLoading = true;
+                axios.get(api).then(function(response){
+                  console.log(response);
+                  vm.isLoading = false;
+                  vm.cart = response.data.data;
+                  console.log(vm.cart);
+                })
+              },
+              addcart(id,num){
+                const vm = this;
+                const api = `${apiPath}${uuid}/ec/shopping`;
+                const datacart={product:id ,quantity: num};
+                vm.isLoading = true;
+                axios.post( api,datacart).then(function(response){
+                  console.log(response);
+                  vm.isLoading = false;
+                  vm.getcart();
+                }).catch((error)=>{
+                  console.log(error);
+                });
+              },
+              quantityUpdata(id,num){
+                const vm = this;
+                const api = `${apiPath}${uuid}/ec/shopping`;
+                const datacart={product: id , quantity: num};
+                axios.patch( api,datacart).then(function(response){
+                  console.log(response);
+                  vm.getcart();
+                }).catch((error)=>{
+                  console.log(error);
+                });
+              }
+            },
+            computed: {
+              one_product_sum: function () {
+                let vm = this;
+                // console.log(num)
+                return vm.tempProduct.price * vm.num
+              },
+              cartTotal: function(){
+                let sum = 0;
+                const vm =this;
+                console.log(vm.cart)
+                for ( let i = 0 ; i < vm.cart.length ; i++)
+                {
+                  sum = sum + vm.cart[i].product.price*vm.cart[i].quantity;
+                }
+                return sum;
+              }
+            },
+            created () {
+              this.getdata();
+              this.getcart();
+            },
+
+        })
+    </script>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vee-validate/3.3.0/vee-validate.full.min.js"></script>
+  </body>
+</html>
